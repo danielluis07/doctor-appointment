@@ -9,11 +9,16 @@ import {
   uuid,
   varchar,
   numeric,
+  primaryKey,
   time,
 } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
+import type { AdapterAccountType } from "next-auth/adapters";
+import { createInsertSchema } from "drizzle-zod";
 
 export const role = pgEnum("role", ["ADMIN", "PATIENT", "DOCTOR"]);
+
+export const gender = pgEnum("gender", ["MALE", "FEMALE"]);
 
 export const userStatus = pgEnum("user_status", [
   "ACTIVE",
@@ -27,54 +32,96 @@ export const appointmentStatus = pgEnum("appointment_status", [
   "COMPLETED",
 ]);
 
-export const user = pgTable("user", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  email: varchar("email", { length: 255 }).unique(),
-  name: varchar("name", { length: 255 }),
+export const users = pgTable("user", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  email: text("email").unique(),
+  name: text("name"),
   lastName: varchar("lastName", { length: 255 }).unique(),
   password: varchar("password", { length: 255 }),
-  image: varchar("image", { length: 255 }),
+  image: text("image"),
   imageName: varchar("imageName", { length: 255 }),
   isTwoFactorEnabled: boolean("is_two_factor_enabled").default(false),
-  emailVerified: timestamp("email_verified"),
-  address1: varchar("address1", { length: 255 }),
+  emailVerified: timestamp("emailVerified", { mode: "date" }),
+  address: varchar("address", { length: 255 }),
   address2: varchar("address2", { length: 255 }),
   city: varchar("city", { length: 255 }),
   state: varchar("state", { length: 255 }),
   phone: varchar("phone", { length: 255 }),
   postalCode: varchar("postal_code", { length: 255 }),
-  country: varchar("country", { length: 255 }),
-  role: role("role").notNull(),
+  role: role("role"),
   status: userStatus("user_status").default("PENDING").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
-export const account = pgTable("account", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("userId")
-    .references(() => user.id, { onDelete: "cascade" })
-    .notNull(),
-  type: text("type"),
-  provider: text("provider"),
-  providerAccountId: text("providerAccountId"),
-  refresh_token: text("refresh_token"),
-  access_token: text("access_token"),
-  expires_at: integer("expires_at"),
-  token_type: text("token_type"),
-  scope: text("scope"),
-  id_token: text("id_token"),
-  session_state: text("session_state"),
+export const account = pgTable(
+  "account",
+  {
+    userId: text("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").$type<AdapterAccountType>().notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("providerAccountId").notNull(),
+    refresh_token: text("refresh_token"),
+    access_token: text("access_token"),
+    expires_at: integer("expires_at"),
+    token_type: text("token_type"),
+    scope: text("scope"),
+    id_token: text("id_token"),
+    session_state: text("session_state"),
+  },
+  (account) => ({
+    compoundKey: primaryKey({
+      columns: [account.provider, account.providerAccountId],
+    }),
+  })
+);
+
+export const session = pgTable("session", {
+  sessionToken: text("sessionToken").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
-export const verificationToken = pgTable("verification_token", {
-  id: varchar("id")
-    .$defaultFn(() => createId())
-    .primaryKey(),
-  email: text("email").notNull(),
-  token: text("token").notNull().unique(),
-  expires: timestamp("expires").notNull(),
-});
+export const verificationToken = pgTable(
+  "verificationToken",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires", { mode: "date" }).notNull(),
+  },
+  (verificationToken) => ({
+    compositePk: primaryKey({
+      columns: [verificationToken.identifier, verificationToken.token],
+    }),
+  })
+);
+
+export const authenticator = pgTable(
+  "authenticator",
+  {
+    credentialID: text("credentialID").notNull().unique(),
+    userId: text("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    providerAccountId: text("providerAccountId").notNull(),
+    credentialPublicKey: text("credentialPublicKey").notNull(),
+    counter: integer("counter").notNull(),
+    credentialDeviceType: text("credentialDeviceType").notNull(),
+    credentialBackedUp: boolean("credentialBackedUp").notNull(),
+    transports: text("transports"),
+  },
+  (authenticator) => ({
+    compositePK: primaryKey({
+      columns: [authenticator.userId, authenticator.credentialID],
+    }),
+  })
+);
 
 export const passwordResetToken = pgTable("password_reset_token", {
   id: varchar("id")
@@ -98,32 +145,32 @@ export const twoFactorConfirmation = pgTable("two_factor_confirmation", {
   id: varchar("id")
     .$defaultFn(() => createId())
     .primaryKey(),
-  userId: uuid("user_id")
-    .references(() => user.id, { onDelete: "cascade" })
-    .notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
 });
 
 export const patient = pgTable("patient", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("post_Id")
-    .references(() => user.id)
-    .notNull(),
-  phone: varchar("phone", { length: 255 }),
-  address: text("address"),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   dateOfBirth: date("date_of_birth"),
-  gender: varchar("gender", { length: 55 }),
+  bio: text("bio"),
+  gender: gender("gender"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const doctor = pgTable("doctor", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_Id")
-    .references(() => user.id)
-    .notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   specialty: varchar("specialty", { length: 255 }),
   experience: integer("experience"),
   qualifications: text("qualifications"),
+  gender: gender("gender"),
   cfm: varchar("cfm", { length: 255 }),
   bio: text("bio"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -146,10 +193,10 @@ export const doctorAvailability = pgTable("doctor_availability", {
 
 export const appointment = pgTable("appointments", {
   id: uuid("id").defaultRandom().primaryKey(),
-  patientId: integer("patient_id").references(() => patient.id, {
+  patientId: uuid("patient_id").references(() => patient.id, {
     onDelete: "cascade",
   }),
-  doctorId: integer("doctor_id").references(() => doctor.id, {
+  doctorId: uuid("doctor_id").references(() => doctor.id, {
     onDelete: "cascade",
   }),
   status: appointmentStatus("appointment_status").notNull(),
@@ -157,17 +204,16 @@ export const appointment = pgTable("appointments", {
   address: text("address"),
   city: text("city"),
   state: text("state"),
-  country: text("country"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const review = pgTable("review", {
   id: uuid("id").defaultRandom().primaryKey(),
-  patientId: integer("patient_id").references(() => patient.id, {
+  patientId: uuid("patient_id").references(() => patient.id, {
     onDelete: "cascade",
   }),
-  doctorId: integer("doctor_id").references(() => doctor.id, {
+  doctorId: uuid("doctor_id").references(() => doctor.id, {
     onDelete: "cascade",
   }),
   rating: numeric("rating", { precision: 2, scale: 1 }).notNull(),
@@ -179,8 +225,12 @@ export const review = pgTable("review", {
 export const notification = pgTable("notification", {
   id: uuid("id").defaultRandom().primaryKey(),
   message: text("message").notNull(),
-  userId: uuid("user_Id").references(() => user.id, { onDelete: "set null" }),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   viewed: boolean("viewed").default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
+
+export const insertUserSchema = createInsertSchema(users);
