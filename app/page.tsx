@@ -1,7 +1,6 @@
 import Image from "next/image";
 import hero from "@/public/hero.jpg";
 import Link from "next/link";
-import { SignUpForm } from "@/components/auth/sign-up-form";
 
 export default function Home() {
   return (

@@ -1,5 +1,5 @@
 {
-  "id": "f4406834-33bb-4f83-8ef0-4e96ca108e0b",
+  "id": "d58ddf86-4dfc-4056-ba9f-846f993e9358",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -108,20 +108,19 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "patient_id": {
           "name": "patient_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
         "doctor_id": {
           "name": "doctor_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -132,14 +131,32 @@
           "primaryKey": false,
           "notNull": true
         },
-        "appointment_date": {
-          "name": "appointment_date",
-          "type": "timestamp",
+        "available_date": {
+          "name": "available_date",
+          "type": "date",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "start_time": {
+          "name": "start_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "end_time": {
+          "name": "end_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
         },
         "address": {
           "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "doctor_office": {
+          "name": "doctor_office",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -297,10 +314,9 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "userId": {
           "name": "userId",
@@ -314,15 +330,15 @@
           "primaryKey": false,
           "notNull": false
         },
-        "experience": {
-          "name": "experience",
-          "type": "integer",
+        "education": {
+          "name": "education",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
-        "qualifications": {
-          "name": "qualifications",
-          "type": "text",
+        "doctor_office": {
+          "name": "doctor_office",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
@@ -385,34 +401,41 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "doctor_id": {
           "name": "doctor_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "available_date": {
           "name": "available_date",
           "type": "date",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "start_time": {
           "name": "start_time",
           "type": "time",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "end_time": {
           "name": "end_time",
           "type": "time",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "availability_status": {
+          "name": "availability_status",
+          "type": "availability_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'AVAILABLE'"
         },
         "created_at": {
           "name": "created_at",
@@ -429,7 +452,41 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "unique_doctor_availability": {
+          "name": "unique_doctor_availability",
+          "columns": [
+            {
+              "expression": "doctor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "available_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "start_time",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "end_time",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "doctor_availability_doctor_id_doctor_id_fk": {
           "name": "doctor_availability_doctor_id_doctor_id_fk",
@@ -454,10 +511,9 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "message": {
           "name": "message",
@@ -560,10 +616,9 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "userId": {
           "name": "userId",
@@ -577,8 +632,26 @@
           "primaryKey": false,
           "notNull": false
         },
-        "bio": {
-          "name": "bio",
+        "medical_condition": {
+          "name": "medical_condition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "medicine": {
+          "name": "medicine",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alergies": {
+          "name": "alergies",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "medical_history": {
+          "name": "medical_history",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -630,20 +703,19 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
-        "patient_id": {
-          "name": "patient_id",
-          "type": "uuid",
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
         "doctor_id": {
           "name": "doctor_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -676,12 +748,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "review_patient_id_patient_id_fk": {
-          "name": "review_patient_id_patient_id_fk",
+        "review_user_id_user_id_fk": {
+          "name": "review_user_id_user_id_fk",
           "tableFrom": "review",
-          "tableTo": "patient",
+          "tableTo": "user",
           "columnsFrom": [
-            "patient_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -848,12 +920,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "lastName": {
-          "name": "lastName",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "password": {
           "name": "password",
           "type": "varchar(255)",
@@ -961,13 +1027,6 @@
           "columns": [
             "email"
           ]
-        },
-        "user_lastName_unique": {
-          "name": "user_lastName_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "lastName"
-          ]
         }
       }
     },
@@ -1013,9 +1072,18 @@
       "name": "appointment_status",
       "schema": "public",
       "values": [
+        "PENDING",
         "SCHEDULED",
         "CANCELLED",
         "COMPLETED"
+      ]
+    },
+    "public.availability_status": {
+      "name": "availability_status",
+      "schema": "public",
+      "values": [
+        "AVAILABLE",
+        "UNAVAILABLE"
       ]
     },
     "public.gender": {

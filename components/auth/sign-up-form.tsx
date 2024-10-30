@@ -33,7 +33,6 @@ import { useRouter } from "next/navigation";
 
 const insertUserSchema = baseInsertUserSchema.extend({
   name: z.string().min(1, "É necessário informar um nome"),
-  lastName: z.string().min(1, "É necessário informar um sobrenome"),
   email: z
     .string()
     .email("Email inválido")
@@ -96,7 +95,6 @@ export const SignUpForm = () => {
       email: "",
       password: "",
       role: undefined,
-      lastName: "",
       address: "",
       address2: "",
       city: "",
@@ -109,7 +107,6 @@ export const SignUpForm = () => {
   const onSubmit = async (values: FormData) => {
     mutation.mutate(values, {
       onSuccess: () => {
-        toast.success("Usário criado com sucesso!");
         router.push("/auth/sign-in");
       },
       onError: () => {
@@ -240,38 +237,6 @@ export const SignUpForm = () => {
                           disabled={mutation.isPending}
                           value={field.value ?? ""}
                           onBlur={() => form.trigger("name")}
-                        />
-                      </FormControl>
-                      {fieldState.error && ( // Display error message if there is an error
-                        <FormMessage className="text-red-500 absolute top-8">
-                          {fieldState.error.message}
-                        </FormMessage>
-                      )}
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field, fieldState }) => (
-                    <FormItem className="relative">
-                      <FormLabel
-                        className={cn(
-                          "ml-3 absolute transition-all text-slate-300",
-                          field.value
-                            ? "-top-5 text-sm bg-milky text-sky-400"
-                            : "top-1/2 transform -translate-y-1/2 text-base"
-                        )}>
-                        Sobrenome
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-sky-400"
-                          disabled={mutation.isPending}
-                          value={field.value ?? ""}
-                          onBlur={() => form.trigger("lastName")}
                         />
                       </FormControl>
                       {fieldState.error && ( // Display error message if there is an error

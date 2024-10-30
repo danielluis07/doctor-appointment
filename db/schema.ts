@@ -6,11 +6,11 @@ import {
   date,
   text,
   timestamp,
-  uuid,
   varchar,
   numeric,
   primaryKey,
   time,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 import type { AdapterAccountType } from "next-auth/adapters";
@@ -20,6 +20,11 @@ export const role = pgEnum("role", ["ADMIN", "PATIENT", "DOCTOR"]);
 
 export const gender = pgEnum("gender", ["MALE", "FEMALE"]);
 
+export const availabilityStatus = pgEnum("availability_status", [
+  "AVAILABLE",
+  "UNAVAILABLE",
+]);
+
 export const userStatus = pgEnum("user_status", [
   "ACTIVE",
   "INACTIVE",
@@ -27,6 +32,7 @@ export const userStatus = pgEnum("user_status", [
 ]);
 
 export const appointmentStatus = pgEnum("appointment_status", [
+  "PENDING",
   "SCHEDULED",
   "CANCELLED",
   "COMPLETED",
@@ -38,7 +44,6 @@ export const users = pgTable("user", {
     .$defaultFn(() => crypto.randomUUID()),
   email: text("email").unique(),
   name: text("name"),
-  lastName: varchar("lastName", { length: 255 }).unique(),
   password: varchar("password", { length: 255 }),
   image: text("image"),
   imageName: varchar("imageName", { length: 255 }),
@@ -151,57 +156,90 @@ export const twoFactorConfirmation = pgTable("two_factor_confirmation", {
 });
 
 export const patient = pgTable("patient", {
-  id: uuid("id").defaultRandom().primaryKey(),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   userId: text("userId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   dateOfBirth: date("date_of_birth"),
-  bio: text("bio"),
+  medicine: text("medicine"),
+  alergies: text("alergies"),
+  medicalHistory: text("medical_history"),
+  familyHistory: text("family_history"),
+  vaccine: text("vaccine"),
+  lifeStyle: text("life_style"),
   gender: gender("gender"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const doctor = pgTable("doctor", {
-  id: uuid("id").defaultRandom().primaryKey(),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   userId: text("userId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   specialty: varchar("specialty", { length: 255 }),
-  experience: integer("experience"),
-  qualifications: text("qualifications"),
+  education: varchar("education", { length: 255 }),
+  doctor_office: varchar("doctor_office", { length: 255 }),
   gender: gender("gender"),
+  price: varchar("price", { length: 255 }),
   cfm: varchar("cfm", { length: 255 }),
   bio: text("bio"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const doctorAvailability = pgTable("doctor_availability", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  doctorId: uuid("doctor_id")
-    .references(() => doctor.id, {
+export const doctorAvailability = pgTable(
+  "doctor_availability",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    doctorId: text("doctor_id").references(() => doctor.id, {
       onDelete: "cascade",
-    })
-    .notNull(),
-  availableDate: date("available_date").notNull(),
-  startTime: time("start_time").notNull(),
-  endTime: time("end_time").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+    }),
+    availableDate: date("available_date"),
+    startTime: time("start_time"),
+    endTime: time("end_time"),
+    availabilityStatus: availabilityStatus("availability_status")
+      .default("AVAILABLE")
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => {
+    return {
+      uniqueAvailability: uniqueIndex("unique_doctor_availability").on(
+        table.doctorId,
+        table.availableDate,
+        table.startTime,
+        table.endTime
+      ),
+    };
+  }
+);
 
 export const appointment = pgTable("appointments", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  patientId: uuid("patient_id").references(() => patient.id, {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  patientId: text("patient_id").references(() => patient.id, {
     onDelete: "cascade",
   }),
-  doctorId: uuid("doctor_id").references(() => doctor.id, {
+  doctorId: text("doctor_id").references(() => doctor.id, {
     onDelete: "cascade",
   }),
   status: appointmentStatus("appointment_status").notNull(),
-  appointmentDate: timestamp("appointment_date").notNull(),
-  address: text("address"),
+  availableDate: date("available_date"),
+  startTime: time("start_time"),
+  endTime: time("end_time"),
+  medicalCondition: text("medical_condition"),
+  address: varchar("address", { length: 255 }),
+  address2: varchar("address2", { length: 255 }),
+  doctorOffice: text("doctor_office"),
   city: text("city"),
   state: text("state"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -209,11 +247,13 @@ export const appointment = pgTable("appointments", {
 });
 
 export const review = pgTable("review", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  patientId: uuid("patient_id").references(() => patient.id, {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").references(() => users.id, {
     onDelete: "cascade",
   }),
-  doctorId: uuid("doctor_id").references(() => doctor.id, {
+  doctorId: text("doctor_id").references(() => doctor.id, {
     onDelete: "cascade",
   }),
   rating: numeric("rating", { precision: 2, scale: 1 }).notNull(),
@@ -223,7 +263,9 @@ export const review = pgTable("review", {
 });
 
 export const notification = pgTable("notification", {
-  id: uuid("id").defaultRandom().primaryKey(),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   message: text("message").notNull(),
   userId: text("userId")
     .notNull()
@@ -234,3 +276,9 @@ export const notification = pgTable("notification", {
 });
 
 export const insertUserSchema = createInsertSchema(users);
+export const insertDoctorSchema = createInsertSchema(doctor);
+export const insertPatientSchema = createInsertSchema(patient);
+export const insertDoctorAvailabilitySchema =
+  createInsertSchema(doctorAvailability);
+export const insertAppointmentSchema = createInsertSchema(appointment);
+export const insertReviewSchema = createInsertSchema(review);

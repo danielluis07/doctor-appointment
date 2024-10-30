@@ -15,7 +15,7 @@ export const useCreateUser = () => {
       return await res.json();
     },
     onSuccess: () => {
-      toast.success("Usuário criada!");
+      toast.success("Usuário criado!");
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
     onError: () => {

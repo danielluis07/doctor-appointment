@@ -64,6 +64,8 @@ export const {
     async session({ token, session }) {
       if (token.sub && session.user) {
         session.user.id = token.sub;
+        session.user.image = token.image as string;
+        session.user.role = token.role as "ADMIN" | "DOCTOR" | "PATIENT";
       }
 
       if (session.user) {
@@ -93,10 +95,12 @@ export const {
         .from(account)
         .where(eq(account.userId, token.sub));
 
+      token.role = existingUser.role || "ADMIN";
       token.isOAuth = !!existingAccount;
       token.name = existingUser.name;
       token.email = existingUser.email;
       token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
+      token.image = existingUser.image;
 
       return token;
     },

@@ -111,11 +111,10 @@ export const login = async (
   }
 
   try {
-    await signIn("credentials", {
-      email,
-      password,
-      redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
-    });
+    return {
+      success: "Login efetuado com sucesso!",
+      role: existingUser.role?.toLocaleLowerCase(),
+    };
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {

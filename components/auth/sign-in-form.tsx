@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
 import { login } from "@/actions/login";
+import { toast } from "sonner";
 
 const logInSchema = z.object({
   email: z
@@ -39,10 +40,9 @@ export const SignInForm = () => {
     searchParams.get("error") === "OAuthAccountNotLinked"
       ? "Esse email já está em uso com outro provedor!"
       : "";
-  const [showTwoFactor, setShowTwoFactor] = useState(false);
-  const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
+  const [showTwoFactor, setShowTwoFactor] = useState<boolean>(false);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const form = useForm<FormData>({
     resolver: zodResolver(logInSchema),
@@ -54,22 +54,20 @@ export const SignInForm = () => {
   });
 
   const onSubmit = (values: z.infer<typeof logInSchema>) => {
-    setError("");
-    setSuccess("");
-
     startTransition(() => {
       login(values, callbackUrl)
         .then((data) => {
           if (data?.error) {
-            setError(data.error);
+            toast.error(data.error);
           }
 
-          /*           if (data?.success) {
+          if (data.success) {
             form.reset();
-            setSuccess(data.success);
-          } */
+            toast.success(data.success);
+            router.push(`/dashboard/${data.role}`);
+          }
         })
-        .catch(() => setError("Algo deu Errado!"));
+        .catch(() => toast.error("Algo deu Errado!"));
     });
   };
 

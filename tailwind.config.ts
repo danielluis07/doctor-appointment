@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
+import { withUt } from "uploadthing/tw";
 
-const config = {
+export default withUt({
   darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
@@ -18,6 +19,13 @@ const config = {
       },
     },
     extend: {
+      screens: {
+        maxsm: { max: "640px" },
+        maxmd: { max: "768px" },
+        maxlg: { max: "1024px" },
+        maxxl: { max: "1280px" },
+        max2xl: { max: "1536px" },
+      },
       colors: {
         doctor: "#007BFF",
         border: "hsl(var(--border))",
@@ -76,6 +84,4 @@ const config = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-} satisfies Config;
-
-export default config;
+});
